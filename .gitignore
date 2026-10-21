@@ -4,13 +4,10 @@
 docs/*.pdf
 docs/*.png
 
-# Node / build output
-node_modules
-dist
-coverage
-*.tsbuildinfo
+# Gleam build output
+build
 
-# Deployment secrets; .env.example and apps/api/.env.test are the checked-in ones
+# Deployment secrets; .env.example is the checked-in one
 .env
 
 # Local tooling and scratch diagrams
