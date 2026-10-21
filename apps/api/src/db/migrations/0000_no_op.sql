@@ -1,3 +1,0 @@
--- No-op migration: establishes the migrations baseline on a fresh database
--- before any domain tables exist. Later tickets (e.g. #61 audit spine,
--- #62 reference data) add their own migrations on top of this one.

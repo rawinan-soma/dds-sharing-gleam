@@ -1,6 +1,0 @@
-packages:
-  - apps/*
-
-onlyBuiltDependencies:
-  - '@swc/core'
-  - esbuild

@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and PRs for this repo live on GitHub, `rawinan-soma/dds-sharing-gleam`, the repo `git remote -v` names. Use the `gh` CLI for all operations; it infers the repo from the remote. The build's spec is `docs/spec.md`.
+Issues and PRs for this repo live on GitHub, `rawinan-soma/dds-sharing-gleam`, the repo `git remote -v` names. Use the `gh` CLI for all operations; it infers the repo from the remote. The build's spec is `docs/spec.md`; its reference implementation is the TS Pilot at `33a9491` (`dds-sharing@pilot`), read with `git show 33a9491:<path>` (see `CLAUDE.md`).
 
 ## History
 
