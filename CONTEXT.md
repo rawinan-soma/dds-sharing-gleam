@@ -135,5 +135,5 @@ The service run by the department on a DDC VM, reached through the ministry-mana
 _Avoid_: Live, prod server
 
 **Pilot**:
-A second service for real Requesters, run on the repo owner's own server and domain and open to the internet — beside Production, never merged into it. Its Decisions and Extracts are real releases of DDS surveillance data; its audit record and its reference numbers are its own, and the record is disposable — losing the Pilot loses every trace of what it released.
+A service for real Requesters, run on the repo owner's own server and domain and open to the internet — beside Production, never merged into it. There may be more than one; each passes the exposure checks itself before its first real release. Its Decisions and Extracts are real releases of DDS surveillance data; its audit record and its reference prefix are its own, so a reference names the Pilot that holds it, and the record is disposable — losing a Pilot loses every trace of what it released.
 _Avoid_: Staging, test server, demo

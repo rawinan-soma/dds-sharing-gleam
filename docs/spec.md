@@ -2071,7 +2071,8 @@ about.
 **A display label; the UUID is the key.** `REQ-2569-0142` in shape, stamped at
 submit and accepted by every lookup surface, but foreign keys use the UUID.
 **The prefix is configuration** (`REFERENCE_PREFIX`, `REQ` by default): each
-service that keeps its own record stamps its own, and the Pilot's is `PLT`
+service that keeps its own record stamps its own, and each Pilot has its own —
+`PLT` for the TS Pilot, `PLG` for the Gleam Pilot
 ([ADR 0022](adr/0022-a-disposable-pilot-releases-real-data-from-the-repo-owners-server.md)),
 so a number quoted over the telephone names the service that holds it. Its
 exact format — Buddhist-era year, what the counter resets on, whether it must be
