@@ -9,6 +9,11 @@ Pilot beside Production, which #77 still gates; adds `docs/spec.md` §18.15;
 rewords #96's "staging deploy" to a running deploy, which the Pilot can be — #96 is not blocked by it. Tickets: #100 (the reference
 prefix), #101 (the Pilot).
 
+Amended 2026-10-21 by the repo owner (`dds-sharing-gleam` #12): there may be
+more than one Pilot. A second Pilot, the Gleam app, runs under this decision
+on the same terms, with the prefix `PLG`. Each Pilot passes the exposure checks
+itself before its first real release; no Pilot borrows another's results.
+
 ## Context
 
 Production is the department's service on a DDC VM behind the ministry-managed
