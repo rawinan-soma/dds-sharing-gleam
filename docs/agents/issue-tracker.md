@@ -1,14 +1,15 @@
 # Issue tracker: GitHub
 
-Issues and PRs for this repo live on GitHub, `rawinan-soma/dds-sharing`. Use the `gh` CLI for all operations. The build's spec is `docs/spec.md`.
+Issues and PRs for this repo live on GitHub, `rawinan-soma/dds-sharing-gleam`, the repo `git remote -v` names. Use the `gh` CLI for all operations; it infers the repo from the remote. The build's spec is `docs/spec.md`.
 
 ## History
 
-- Issues #1–#98 were GitHub issues. On 2026-09-21 the open ones moved to markdown files under `.scratch/dds-sharing/issues/`; on 2026-09-30 the tracker moved back to GitHub.
+- **Until 2026-10-21 issues lived in `rawinan-soma/dds-sharing`** (#1–#151). That repo is history: read it with `gh issue view <NN> -R rawinan-soma/dds-sharing --comments`; never create issues there. A ticket number in a commit, ADR or PR dated before 2026-10-21 means a `dds-sharing` number, not a `dds-sharing-gleam` one.
+- Before that, issues #1–#98 were on GitHub. On 2026-09-21 the open ones moved to markdown files under `.scratch/dds-sharing/issues/`; on 2026-09-30 the tracker moved back to GitHub.
 - **The closed files in `.scratch/dds-sharing/issues/` are history.** Read them; never add to them.
-- **Ticket numbers 99–105 in commits, ADRs and PRs dated before 2026-09-30 mean those files, not GitHub numbers.** GitHub numbers are shared with PRs, so on GitHub `#99`–`#102` are PRs. The open ones moved:
+- **Ticket numbers 99–105 in commits, ADRs and PRs dated before 2026-09-30 mean those files, not GitHub numbers.** GitHub numbers are shared with PRs, so on `dds-sharing` `#99`–`#102` are PRs. The open ones moved:
 
-  | File | GitHub |
+  | File | `dds-sharing` |
   |---|---|
   | 77 | #77 (reopened) |
   | 96 | #96 (reopened) |
@@ -26,6 +27,10 @@ Issues and PRs for this repo live on GitHub, `rawinan-soma/dds-sharing`. Use the
 - The body is `## What to build` prose followed by an `## Acceptance criteria` checklist (`- [ ]` lines). `pr-clearance` grades against the checklist.
 - The triage role is a label (see `triage-labels.md`); the category is `enhancement` or `bug`.
 - A PR closes its issue with `Closes #NN`.
+
+## Pull requests as a triage surface
+
+**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
 
 ## When a skill says "publish to the issue tracker"
 

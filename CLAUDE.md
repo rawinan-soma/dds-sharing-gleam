@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues and PRs live on GitHub (`gh`). The closed files under `.scratch/dds-sharing/issues/` are history, and their numbers 99–105 are not GitHub numbers. See `docs/agents/issue-tracker.md`.
+Issues and PRs live on GitHub in `rawinan-soma/dds-sharing-gleam` (`gh`). Issues in `rawinan-soma/dds-sharing` and the closed files under `.scratch/dds-sharing/issues/` are history; ticket numbers dated before 2026-10-21 refer to them. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -12,4 +12,4 @@ Default five-role vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`
 
 ### Domain docs
 
-Single-context — `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context — `CONTEXT.md` (this repo's name for `GLOSSARY.md`) and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
