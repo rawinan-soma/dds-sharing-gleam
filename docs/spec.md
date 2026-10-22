@@ -2563,7 +2563,7 @@ becomes a rubber stamp.
 |---|---|---|
 | `/` | Angular | the Request form, one scrolling page |
 | `/submitted` | Angular | confirmation. **Client state only — nothing in the address** |
-| `/link-expired` | Angular | §9.4's one sentence. Reached only by redirect |
+| `/link-expired` | NestJS | §9.4's one sentence, server-rendered, no Angular. Reached only by redirect |
 | `/reviewer/...` | Angular | sign-in, queue, one Request. Sign-in accepts a return-to address |
 | `/api/...` | NestJS | |
 | `/d/<token>` | NestJS | The collection page, server-rendered, no Angular. A lookup, not an Attempt. **Fixed — travels in email** |
