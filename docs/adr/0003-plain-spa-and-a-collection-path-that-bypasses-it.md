@@ -8,6 +8,11 @@ Date: 2026-09-02
 `/d/<token>` now renders a server-side page and the archive is its own request.
 The guarantee below is unchanged.*
 
+*Amended by [ADR 0023](0023-two-lustre-entry-modules-and-no-server-components.md):
+in the Gleam app, the Requester and the Reviewer are two Lustre entry modules of
+one build, and `/d/<token>` is rendered by wisp. The guarantee and the rejections
+below are unchanged.*
+
 Accepted. Amends ADR-0001's surroundings only insofar as it fixes where the Delivery's link points.
 
 ## Context
