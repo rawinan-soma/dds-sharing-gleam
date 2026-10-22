@@ -13,6 +13,11 @@ in the Gleam app, the Requester and the Reviewer are two Lustre entry modules of
 one build, and `/d/<token>` is rendered by wisp. The guarantee and the rejections
 below are unchanged.*
 
+*Amended for [#14](https://github.com/rawinan-soma/dds-sharing-gleam/issues/14)
+(2026-10-22): `/link-expired` is rendered by the server with no script, as the
+pilot does, not by the SPA. Every dead-token redirect lands on it, so it belongs
+to the collection path and keeps that path free of the front-end bundle.*
+
 Accepted. Amends ADR-0001's surroundings only insofar as it fixes where the Delivery's link points.
 
 ## Context
@@ -45,7 +50,7 @@ excluding the API prefix from the SPA fallback.
 
 The **Delivery email points at `GET /d/<token>` on NestJS**, not at an Angular
 route. NestJS counts the Attempt, then streams the zip with range requests, or
-redirects to the Angular route `/link-expired`.
+redirects to `/link-expired`, which NestJS also renders.
 
 ## Consequences
 
