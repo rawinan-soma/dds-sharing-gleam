@@ -965,20 +965,31 @@ stopped chunking. A 504 is expected, not exceptional.
 
 ### 7.7 Queue mechanics
 
-**BullMQ executes; PostgreSQL is the system of record.**
+**OTP actors execute; PostgreSQL is the system of record and the queue.**
+There is no Redis (decided 2026-10-22, [#9](https://github.com/rawinan-soma/dds-sharing-gleam/issues/9)).
 
-- A job row is written to Postgres at approval; the BullMQ job carries a
-  **reference**, never the authoritative state.
-- **Redis runs with AOF persistence.** Redis is not durable by default, and a
-  restart on the wrong persistence config drops queued jobs while Postgres still
-  says those Requests exist — leaving a Requester waiting for ever on a job in no
-  queue.
-- **On worker startup, reconcile**: any Postgres job in `queued`/`running` with no
-  live BullMQ job is re-enqueued or failed. Without this step, "durable jobs" is
-  one config file away from being false. **The reconcile never touches
-  `pending`** — an unapproved Request has no work, and its clock is derived
-  (§15.1).
+- A job row is written to Postgres at approval, and the `extraction_job` table
+  **is** the queue: the runner claims the oldest due `queued` row. A timer or a
+  message only wakes the runner; it never carries authoritative state, so a lost
+  wake costs at most one tick.
+- **Rendered mail waits on the persistent volume, not in Postgres** (decided
+  2026-10-22, [#13](https://github.com/rawinan-soma/dds-sharing-gleam/issues/13)).
+  Each message awaiting a retry, and each sent Delivery that may be resent, is
+  one file — the **message store** — beside the scratch volume, so it survives a
+  restart or a deploy. A file is deleted once it can no longer be used: when its
+  send succeeds (every kind but the Delivery), when its send is abandoned, and,
+  for a Delivery, when its Download token stops being live (§10.8).
+- **Reconcile, never fail**: at startup every `running` row goes back to
+  `queued`; on each pass, an unfinished row with no progress for the stall
+  window (§7.6) that the runner is not executing goes back to `queued`. Without
+  this step, "durable jobs" is one crash away from being false. **The reconcile
+  never touches `pending`** — an unapproved Request has no work, and its clock
+  is derived (§15.1).
 - **Global extraction concurrency is 1** (§13.2).
+- **The app runs as one node.** Two things rest on it: the runner is one per
+  node, so a second node would break §13.2's concurrency of 1, and the message
+  store is local, so a second node's tick would find another node's messages
+  missing and abandon them. Scaling out means revisiting both together.
 
 ### 7.8 Storage during the job
 
@@ -1472,9 +1483,8 @@ the screen does not need to be live.
 **Concurrent sessions allowed, capped at 3 per Reviewer, oldest evicted** — a
 hygiene bound, not a control.
 
-**Sessions and login-throttle state live in Postgres, not Redis.** Deactivation
-becomes a query rather than a cache-invalidation problem, a Redis flush cannot
-resurrect state that matters, and a throttle a `docker compose restart` clears is
+**Sessions and login-throttle state live in Postgres, not in memory.** Deactivation
+becomes a query rather than a cache-invalidation problem, and a throttle a `docker compose restart` clears is
 a throttle an attacker can wait out. Volume is a handful of rows a week.
 
 **Cookie:** `httpOnly`, `SameSite=Lax`, and **`Secure` on by default, disabled
@@ -1608,18 +1618,19 @@ exists to hold.
   clock**. The token is never extended by use, and a resend is not use.
 - **What is resent is the sent Delivery itself** (decided with the repo owner
   2026-09-24, #74). The raw token is stored nowhere but in the rendered message,
-  so a sent Delivery's BullMQ job is **kept in Redis for 72 hours** — the life of
-  the token it carries — where every other kind is dropped once sent. A resend
+  so a sent Delivery's message is **kept in the message store (§7.7) while its
+  Download token is live** — expiry, a Re-run's revocation or the Request's end
+  deletes it — where every other kind is deleted once sent. A resend
   copies that message into a new send, so the link, the address and the clock
   are exactly what they were; it takes the **current** link's Delivery, never a
-  superseded one's. If Redis no longer holds it, the resend is refused and the
-  remedy is a Re-run. **The audit is the second `mail_sent` `{kind: delivery}`**;
+  superseded one's. If the message store no longer holds it, the resend is
+  refused and the remedy is a Re-run. **The audit is the second `mail_sent` `{kind: delivery}`**;
   who pressed resend is not recorded, and the catalogue gains no type for it,
   because a resend changes nothing a Decision was about. Storing the raw token
-  in Postgres, even encrypted, was declined. **Accepted:** for those 72 hours the
-  link is readable to whoever can read Redis — the operator, and Bull Board
-  (§14.4), which is localhost-only and never on the Reviewer surface — as a
-  failed send's already was.
+  in Postgres, even encrypted, was declined, and still is without Redis ([#13](https://github.com/rawinan-soma/dds-sharing-gleam/issues/13)).
+  **Accepted:** while the token is live, the link is readable to whoever can
+  read the message store's volume — the operator, never the Reviewer surface —
+  as a failed send's already was.
 > ⚠️ **A Reviewer never corrects a Requester's email address. The resend control
 > takes no address field.**
 > [ADR 0017](adr/0017-a-reviewer-never-corrects-a-requesters-email-address.md)
@@ -2012,7 +2023,7 @@ reading the ticket record alone would find `job_queued` and nothing else.
 |---|---|---|
 | `mail_sent` | `system` | `{kind: delivery \| queue_notification \| rejection \| extraction_failure, to, relay_response}` |
 | `mail_send_failed` | `system` | try number, relay error |
-| `mail_send_abandoned` | `system` | fifth try failed — or the queued send was lost from Redis, which cannot be rebuilt because the rendered Delivery is the only place its raw Download token existed (§15.3) |
+| `mail_send_abandoned` | `system` | fifth try failed — or the send's message was missing from the message store (§7.7), which cannot be rebuilt because the rendered Delivery is the only place its raw Download token existed (§15.3) |
 | `delivery_alert_raised` | `system` | send abandoned |
 | `download_attempted` | `anonymous` | mirrored from `token_lookup` |
 | `collection_lapse_raised` | `system` | **24 wall-clock hours, zero Attempts**, raised at the next business-hours opening (§11.4). Carries the wall-clock hours elapsed, so a trip-wire that fired on time is distinguishable from one whose Alert waited for Monday |
@@ -2347,15 +2358,18 @@ lives in `job_failed` and is operator-facing only.
 
 ### 14.4 Bull Board
 
-**Ships, bound to localhost, reached by SSH port-forward from the Docker host.**
+**Does not ship.** Bull Board inspected BullMQ, and there is no BullMQ (§7.7).
+Whether anything replaces it is open; whatever does inherits the two rules
+that bound Bull Board:
 
-- **Not published through the public ingress** — it has no auth of its own and
+- **Not published through the public ingress** — a tool with no auth of its own
   would ride the single origin.
 - **Not behind Reviewer auth**, for a sharper reason: **a Reviewer's entire job is
   to never see case data**, and putting a raw job inspector on their surface
   leaves them one unlucky error payload away from it.
-- **It is a debugging tool carrying no watcher obligation.** The watching duty sits
-  entirely on `/health` and the Reviewer queue.
+
+The watching duty sits entirely on `/health` and the Reviewer queue; no
+debugging tool carries a watcher obligation.
 
 ### 14.5 Application logs
 
@@ -2374,8 +2388,8 @@ lifetime is the backstop behind it. Concretely:
   `meta.total_items`** — **never a response body.** An error carrying a body is
   logged with the body **removed, not truncated**: a truncated body is still case
   data, and it reads as though somebody had thought about it.
-- A **BullMQ job payload carries the Request id and nothing fetched**, so a failed
-  job sitting in Redis holds no rows.
+- A **message file in the message store (§7.7) carries the rendered mail and
+  nothing fetched**, so a failed send waiting there holds no rows.
 
 > **Why the ban and the clock both.** The ban is the control, because a log line
 > has none of the three things that make the 72-hour rule trustworthy elsewhere:
@@ -2446,29 +2460,30 @@ about expires in wall-clock hours.
 
 ### 15.3 The tick
 
-**`@nestjs/schedule`, every 60 s**, querying Postgres for due work and enqueueing
-real BullMQ jobs to do it. **Redis executes; Postgres is the truth.** BullMQ
-repeatable jobs were rejected: a schedule living only in Redis is a schedule a
-Redis loss silently cancels.
+**A self-re-arming actor, every 60 s**, querying Postgres for due work and
+handing it to the actors that do it. **Actors execute; Postgres is the truth.**
+No schedule lives anywhere but in that query: a schedule held only in a timer
+or a queue is a schedule a restart silently cancels.
 
 - **Stateless and disposable.** "Due" is a query, not an event, so a restart needs
   no catch-up logic — the next pass picks up everything outstanding. **There is no
   missed-window class of bug.**
 - **One pass, several queries, one Postgres advisory lock.** The lock is taken each
-  pass, so single execution is *enforced* rather than remembered and the deployment
-  shape stays free — scaling the app container later cannot silently double every
-  deletion. Separate cadences per job were rejected: every job here is "find due
+  pass, so single execution is *enforced* rather than remembered — even on the one
+  node the app runs as (§7.7), an overlapping pass cannot double a deletion. Separate cadences per job were rejected: every job here is "find due
   work", and four schedules mean four heartbeats and four ways to be half-alive.
 - **The startup reconcile is the same pass with no lower bound on "due"** — not a
   separate code path. It touches exactly two things: approved Requests whose
-  extraction was unfinished — `running`, or `queued` with no live BullMQ job
-  (§7.7) — when the process died (re-enqueue; code-atomic retry makes this
+  extraction was unfinished — `running` (§7.7) — when the process died (re-enqueue; code-atomic retry makes this
   safe), and expired Download tokens whose objects still exist (delete).
   **It never touches `pending`.**
 - Every "cleanup" the tick performs on the event tables is expressed as an
   **insert**, per §12.2.
 - **What is enqueued and what runs in the pass** (decided 2026-09-23, #72).
-  Extraction re-enqueues and mail send-retries go to BullMQ. Object deletion,
+  Extraction re-enqueues wake the runner, and mail send-retries go to the mail
+  sender, which reads each retry's message from the message store (§7.7); a
+  missing message is abandoned (§11.3). The pass also deletes message files no
+  longer usable (§7.7). Object deletion,
   materialising `expired` and `expired_uncollected`, the collection lapse and
   pruning run **inline under the lock** — single execution is then the lock's
   guarantee rather than a job-id's. Each MinIO call times out at 30 s, so a hung
@@ -2874,7 +2889,7 @@ moment, and the person granting it carries part of §18's question knowingly.
   hostname or ministry certificate exists during development, which is why the
   base URL is configuration.
 - A route from the edge to the VM's app port, and **only** that port.
-- **Confirmation, tested from outside, that Postgres, Redis, MinIO and the worker
+- **Confirmation, tested from outside, that Postgres, MinIO and the worker
   are unreachable.** MinIO is the sharp one: a bucket reachable directly would
   bypass the Download token and the download audit entirely.
 - ⚠️ **Internal reachability is a separate and larger question than internet
@@ -3147,8 +3162,8 @@ holds no copy of what was released from here.
 
 > **What makes this exposure unusual is its shape.** Everything else in this
 > design that could be lost was made disposable on purpose — the **Extract
-> archive** at 72 hours (§9.3), Redis by AOF replay (§7.7). **The record is the
-> one thing that was made permanent, and it is the one thing with no second
+> archive** at 72 hours (§9.3), the message store as its tokens die (§7.7).
+> **The record is the one thing that was made permanent, and it is the one thing with no second
 > copy.** Accepted, and recorded here rather than left as an assumption that a VM
 > snapshot exists somewhere.
 
