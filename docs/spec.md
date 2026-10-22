@@ -1092,7 +1092,7 @@ semantics**.
 | 1 | **UTF-8 with BOM** |
 | 2 | **CRLF line endings, fixed — never `os.linesep`** |
 | 3 | Empty cell written **bare**: `a,,c`, never `a,"",c` |
-| 4 | **Trim** leading and trailing whitespace on every value |
+| 4 | **Trim** leading and trailing whitespace on every value — the set named below |
 | 5 | **RFC 4180 minimal quoting** — quote only on `,`, `"`, CR or LF |
 | 6 | **Uppercase-normalise `diagnosis_icd10` and `diagnosis_icd10_list`, and nothing else** |
 | 7 | **English upstream field names** in the header row |
@@ -1116,6 +1116,18 @@ whitespace-only upstream value survives to the file and there are *three* null
 representations again. Trimming is safe only because every one of the 23 retained
 columns is a code, a date or an id; none has meaningful edge whitespace. Had
 `address` survived the allowlist, this answer would have been different.
+
+**The whitespace set is the pilot's**, JavaScript's `String.prototype.trim`
+(ECMAScript WhiteSpace plus LineTerminator), named here because a port's own
+`trim` does not match it: U+0009, U+000A, U+000B, U+000C, U+000D, U+0020,
+U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000 and
+U+FEFF. **Nothing else**: not U+0085 (NEL), U+180E, U+200B, U+200E or U+200F.
+The set fixes the bytes, and so the fingerprint (§8.4); a different set gives two
+writers different Extracts from the same rows. Erlang's `string:trim`, behind
+Gleam's `string.trim`, keeps U+00A0 and U+FEFF (checked on OTP 28), so the
+Gleam writer trims with this set explicitly. **A required test** covers U+00A0, U+FEFF
+and U+0085 (decided with the repo owner 2026-10-22,
+[#15](https://github.com/rawinan-soma/dds-sharing-gleam/issues/15)).
 
 **Rule 6.** ICD-10 is canonically uppercase, so `a150` is upstream data entry
 rather than a distinct code — and both `A150` and `a150` were observed in group
