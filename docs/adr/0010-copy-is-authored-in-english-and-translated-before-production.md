@@ -4,6 +4,11 @@ Date: 2026-09-04
 
 ## Status
 
+*Amended by [ADR 0024](0024-copy-through-g18n-behind-a-strict-wrapper.md): in
+the Gleam app, copy goes through `g18n` behind a wrapper that fails on a missing
+key, and the Paraglide consequences below do not apply. The decision is
+unchanged.*
+
 Accepted. **Reverses** `docs/spec.md` §16.3's ruling that `messages/en.json` is
 deliberately not maintained, and rewrites that section. Amends §12.9, §17.1 and
 §18.14. Leaves [ADR 0003](0003-plain-spa-and-a-collection-path-that-bypasses-it.md)
